@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>ESP32 Controller</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--tg-theme-bg-color,#1a1a1a);color:var(--tg-theme-text-color,#fff);padding:16px;padding-bottom:80px}
+.header{text-align:center;margin-bottom:24px;padding:16px;background:var(--tg-theme-secondary-bg-color,#2a2a2a);border-radius:12px}
+.header h1{font-size:24px;margin-bottom:8px}
+.status-badge{display:inline-block;padding:4px 12px;border-radius:12px;font-size:12px;font-weight:600;background:#4ade80;color:#fff}
+.section{background:var(--tg-theme-secondary-bg-color,#2a2a2a);border-radius:12px;padding:16px;margin-bottom:16px}
+.section-title{font-size:16px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.button-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.control-btn{padding:16px;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;background:var(--tg-theme-button-color,#3390ec);color:var(--tg-theme-button-text-color,#fff);display:flex;flex-direction:column;align-items:center;gap:8px;min-height:80px}
+.control-btn:active{transform:scale(.95);opacity:.8}
+.control-btn.danger{background:#ef4444}
+.control-btn.success{background:#10b981}
+.control-btn .emoji{font-size:28px}
+.control-btn .label{font-size:13px}
+.info-item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.1)}
+.info-item:last-child{border-bottom:none}
+.info-label{font-size:14px;opacity:.7}
+.info-value{font-size:14px;font-weight:600}
+.toggle-btn{width:100%;padding:14px;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;background:var(--tg-theme-button-color,#3390ec);color:var(--tg-theme-button-text-color,#fff);display:flex;align-items:center;justify-content:center;gap:8px}
+.toggle-btn.active{background:#10b981}
+.loading{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;z-index:1000}
+.loading.show{display:flex}
+.spinner{width:50px;height:50px;border:4px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="loading" id="loading"><div class="spinner"></div></div>
+<div class="header">
+<h1>🤖 ESP32 Controller</h1>
+<span class="status-badge" id="statusBadge">Tayyor</span>
+</div>
+<div class="section">
+<div class="section-title"><span>🎮</span><span>LED Rejimlar</span></div>
+<div class="button-grid">
+<button class="control-btn" onclick="sendCommand('rejim1')">
+<span class="emoji">⚡</span>
+<span class="label">Rejim 1<br>Tez (200ms)</span>
+</button>
+<button class="control-btn" onclick="sendCommand('rejim2')">
+<span class="emoji">💡</span>
+<span class="label">Rejim 2<br>Sekin (1s)</span>
+</button>
+<button class="control-btn" onclick="sendCommand('sos')">
+<span class="emoji">🆘</span>
+<span class="label">SOS<br>Signal</span>
+</button>
+<button class="control-btn" onclick="sendCommand('random')">
+<span class="emoji">🎲</span>
+<span class="label">Random<br>Tasodifiy</span>
+</button>
+</div>
+</div>
+<div class="section">
+<div class="section-title"><span>🔧</span><span>Boshqaruv</span></div>
+<button class="toggle-btn" id="buzzerBtn" onclick="sendCommand('buzzer')">
+<span>🔔</span>
+<span id="buzzerText">Buzzer</span>
+</button>
+</div>
+<div class="section">
+<div class="section-title"><span>📊</span><span>Ma'lumotlar</span></div>
+<div>
+<div class="info-item">
+<span class="info-label">💡 LED:</span>
+<span class="info-value" id="ledStatus">-</span>
+</div>
+<div class="info-item">
+<span class="info-label">🔔 Buzzer:</span>
+<span class="info-value" id="buzzerStatus">-</span>
+</div>
+<div class="info-item">
+<span class="info-label">🌡️ Harorat:</span>
+<span class="info-value" id="tempStatus">-</span>
+</div>
+<div class="info-item">
+<span class="info-label">⏱️ Ishlash:</span>
+<span class="info-value" id="uptimeStatus">-</span>
+</div>
+</div>
+</div>
+<div class="section">
+<div class="section-title"><span>⚙️</span><span>Amallar</span></div>
+<div class="button-grid">
+<button class="control-btn success" onclick="sendCommand('temp')">
+<span class="emoji">🌡️</span>
+<span class="label">Harorat</span>
+</button>
+<button class="control-btn success" onclick="sendCommand('status')">
+<span class="emoji">📊</span>
+<span class="label">Holat</span>
+</button>
+<button class="control-btn danger" onclick="sendCommand('off')" style="grid-column:1/-1">
+<span class="emoji">❌</span>
+<span class="label">Hammasini o'chirish</span>
+</button>
+</div>
+</div>
+
+<script>
+let tg = window.Telegram.WebApp;
+
+// Telegram Mini App ni sozlash
+tg.expand();
+tg.enableClosingConfirmation();
+
+// MainButton ni yashirish
+tg.MainButton.hide();
+
+function showLoading() {
+  document.getElementById('loading').classList.add('show');
+}
+
+function hideLoading() {
+  document.getElementById('loading').classList.remove('show');
+}
+
+function showNotification(message, isError = false) {
+  if (isError) {
+    tg.showAlert(message);
+  } else {
+    tg.showPopup({
+      title: '✅ Bajarildi',
+      message: message,
+      buttons: [{type: 'ok'}]
+    });
+  }
+}
+
+async function sendCommand(cmd) {
+  showLoading();
+  
+  try {
+    // Telegram bot orqali ESP32 ga buyruq yuborish
+    // Bu yerda bot token va chat_id kerak
+    
+    // Telegram WebApp data orqali yuborish
+    const commandData = JSON.stringify({
+      command: cmd,
+      timestamp: Date.now()
+    });
+    
+    // Bot ga xabar yuborish
+    tg.sendData(commandData);
+    
+    // Vizual feedback
+    setTimeout(() => {
+      hideLoading();
+      updateStatus(cmd);
+      showNotification('Buyruq yuborildi: ' + cmd);
+    }, 500);
+    
+  } catch (e) {
+    console.error('Xatolik:', e);
+    hideLoading();
+    showNotification('Xatolik yuz berdi!', true);
+  }
+}
+
+function updateStatus(cmd) {
+  const ledStatus = document.getElementById('ledStatus');
+  
+  if (cmd === 'rejim1') {
+    ledStatus.textContent = 'Rejim 1 (Tez)';
+  } else if (cmd === 'rejim2') {
+    ledStatus.textContent = 'Rejim 2 (Sekin)';
+  } else if (cmd === 'sos') {
+    ledStatus.textContent = 'SOS Signal';
+  } else if (cmd === 'random') {
+    ledStatus.textContent = 'Random';
+  } else if (cmd === 'off') {
+    ledStatus.textContent = "O'chiq";
+  }
+}
+
+// Telegram theme ranglarini qo'llash
+if (tg.colorScheme === 'dark') {
+  document.body.style.background = tg.themeParams.bg_color || '#1a1a1a';
+}
+
+// Ilova yuklanganda
+window.addEventListener('load', () => {
+  console.log('Telegram Mini App yuklandi');
+  console.log('User ID:', tg.initDataUnsafe?.user?.id);
+  
+  // Ready signal
+  tg.ready();
+});
+</script>
+</body>
+</html>
