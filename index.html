@@ -255,9 +255,9 @@
                     <span class="icon">⚡</span>
                     <span class="label">Tez</span>
                 </button>
-                <button class="control-btn full-width" onclick="sendCommand('PULSE')">
-                    <span class="icon">💫</span>
-                    <span class="label">Pulse Effekt</span>
+                <button class="control-btn full-width" onclick="sendCommand('STROBE')">
+                    <span class="icon">⚠️</span>
+                    <span class="label">Strobe Effekt</span>
                 </button>
             </div>
 
@@ -266,8 +266,10 @@
     </div>
 
     <script>
-        const BOT_TOKEN = new URLSearchParams(window.location.search).get('token') || '';
-        const ESP_IP = new URLSearchParams(window.location.search).get('ip') || '';
+        // URL dan parametrlarni olish
+        const urlParams = new URLSearchParams(window.location.search);
+        const BOT_TOKEN = urlParams.get('token') || '8561262391:AAEdrFVUdEAJGT-QPZ4QPQIVzcLozDZEBOA';
+        const ESP_IP = urlParams.get('ip') || '';
         const CHAT_ID = '6318105665';
         
         let currentMode = 'OFF';
@@ -303,9 +305,9 @@
                     indicator.classList.add('active');
                     statusText.textContent = 'Tez Miltillaydi';
                     break;
-                case 'PULSE':
+                case 'STROBE':
                     indicator.classList.add('active');
-                    statusText.textContent = 'Pulse Effekt';
+                    statusText.textContent = 'Strobe Effekt';
                     break;
             }
             
@@ -313,11 +315,6 @@
         }
 
         async function sendCommand(command) {
-            if (!BOT_TOKEN) {
-                showMessage('❌ Token topilmadi');
-                return;
-            }
-
             const loadingEl = document.getElementById('loading');
             const buttonGrid = document.getElementById('buttonGrid');
             
@@ -343,7 +340,7 @@
                     updateLedIndicator(command);
                     showMessage('✅ Buyruq yuborildi');
                 } else {
-                    showMessage('❌ Xatolik yuz berdi');
+                    showMessage('❌ Xatolik: ' + (data.description || 'Noma\'lum xato'));
                 }
             } catch (error) {
                 console.error('Xatolik:', error);
@@ -363,12 +360,11 @@
                 ipEl.textContent = 'Noma\'lum';
             }
             
-            if (!BOT_TOKEN) {
-                showMessage('⚠️ Token topilmadi. URL ni tekshiring.', 5000);
-            } else {
-                showMessage('✅ Tayyor', 2000);
-            }
+            // Token mavjudligini tekshirish
+            console.log('Bot Token:', BOT_TOKEN ? 'Mavjud' : 'Yo\'q');
+            console.log('ESP IP:', ESP_IP || 'Noma\'lum');
             
+            showMessage('✅ Tayyor', 2000);
             updateLedIndicator('OFF');
         });
     </script>
