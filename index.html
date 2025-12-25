@@ -1,199 +1,376 @@
 <!DOCTYPE html>
 <html lang="uz">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>ESP32 Controller</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--tg-theme-bg-color,#1a1a1a);color:var(--tg-theme-text-color,#fff);padding:16px;padding-bottom:80px}
-.header{text-align:center;margin-bottom:24px;padding:16px;background:var(--tg-theme-secondary-bg-color,#2a2a2a);border-radius:12px}
-.header h1{font-size:24px;margin-bottom:8px}
-.status-badge{display:inline-block;padding:4px 12px;border-radius:12px;font-size:12px;font-weight:600;background:#4ade80;color:#fff}
-.section{background:var(--tg-theme-secondary-bg-color,#2a2a2a);border-radius:12px;padding:16px;margin-bottom:16px}
-.section-title{font-size:16px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.button-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-.control-btn{padding:16px;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;background:var(--tg-theme-button-color,#3390ec);color:var(--tg-theme-button-text-color,#fff);display:flex;flex-direction:column;align-items:center;gap:8px;min-height:80px}
-.control-btn:active{transform:scale(.95);opacity:.8}
-.control-btn.danger{background:#ef4444}
-.control-btn.success{background:#10b981}
-.control-btn .emoji{font-size:28px}
-.control-btn .label{font-size:13px}
-.info-item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.1)}
-.info-item:last-child{border-bottom:none}
-.info-label{font-size:14px;opacity:.7}
-.info-value{font-size:14px;font-weight:600}
-.toggle-btn{width:100%;padding:14px;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;background:var(--tg-theme-button-color,#3390ec);color:var(--tg-theme-button-text-color,#fff);display:flex;align-items:center;justify-content:center;gap:8px}
-.toggle-btn.active{background:#10b981}
-.loading{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;z-index:1000}
-.loading.show{display:flex}
-.spinner{width:50px;height:50px;border:4px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 LED Control</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 450px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .status-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            animation: slideUp 0.5s ease-out;
+        }
+
+        .status-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .status-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .status-value {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .led-indicator {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin: 20px auto;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+
+        .led-indicator.active {
+            background: #4ade80;
+            box-shadow: 0 0 30px rgba(74, 222, 128, 0.6), 0 4px 20px rgba(0,0,0,0.2);
+            animation: pulse 2s infinite;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            animation: slideUp 0.6s ease-out;
+        }
+
+        .control-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.25);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            padding: 18px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.35);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .control-btn:active {
+            transform: translateY(0);
+        }
+
+        .control-btn.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .control-btn .icon {
+            font-size: 28px;
+        }
+
+        .control-btn .label {
+            font-size: 13px;
+            opacity: 0.95;
+        }
+
+        .message {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 12px;
+            margin-top: 15px;
+            text-align: center;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .message.show {
+            opacity: 1;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            font-size: 14px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #fff;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
-<div class="loading" id="loading"><div class="spinner"></div></div>
-<div class="header">
-<h1>🤖 ESP32 Controller</h1>
-<span class="status-badge" id="statusBadge">Tayyor</span>
-</div>
-<div class="section">
-<div class="section-title"><span>🎮</span><span>LED Rejimlar</span></div>
-<div class="button-grid">
-<button class="control-btn" onclick="sendCommand('rejim1')">
-<span class="emoji">⚡</span>
-<span class="label">Rejim 1<br>Tez (200ms)</span>
-</button>
-<button class="control-btn" onclick="sendCommand('rejim2')">
-<span class="emoji">💡</span>
-<span class="label">Rejim 2<br>Sekin (1s)</span>
-</button>
-<button class="control-btn" onclick="sendCommand('sos')">
-<span class="emoji">🆘</span>
-<span class="label">SOS<br>Signal</span>
-</button>
-<button class="control-btn" onclick="sendCommand('random')">
-<span class="emoji">🎲</span>
-<span class="label">Random<br>Tasodifiy</span>
-</button>
-</div>
-</div>
-<div class="section">
-<div class="section-title"><span>🔧</span><span>Boshqaruv</span></div>
-<button class="toggle-btn" id="buzzerBtn" onclick="sendCommand('buzzer')">
-<span>🔔</span>
-<span id="buzzerText">Buzzer</span>
-</button>
-</div>
-<div class="section">
-<div class="section-title"><span>📊</span><span>Ma'lumotlar</span></div>
-<div>
-<div class="info-item">
-<span class="info-label">💡 LED:</span>
-<span class="info-value" id="ledStatus">-</span>
-</div>
-<div class="info-item">
-<span class="info-label">🔔 Buzzer:</span>
-<span class="info-value" id="buzzerStatus">-</span>
-</div>
-<div class="info-item">
-<span class="info-label">🌡️ Harorat:</span>
-<span class="info-value" id="tempStatus">-</span>
-</div>
-<div class="info-item">
-<span class="info-label">⏱️ Ishlash:</span>
-<span class="info-value" id="uptimeStatus">-</span>
-</div>
-</div>
-</div>
-<div class="section">
-<div class="section-title"><span>⚙️</span><span>Amallar</span></div>
-<div class="button-grid">
-<button class="control-btn success" onclick="sendCommand('temp')">
-<span class="emoji">🌡️</span>
-<span class="label">Harorat</span>
-</button>
-<button class="control-btn success" onclick="sendCommand('status')">
-<span class="emoji">📊</span>
-<span class="label">Holat</span>
-</button>
-<button class="control-btn danger" onclick="sendCommand('off')" style="grid-column:1/-1">
-<span class="emoji">❌</span>
-<span class="label">Hammasini o'chirish</span>
-</button>
-</div>
-</div>
+    <div class="container">
+        <div class="header">
+            <h1>💡 ESP32 LED Control</h1>
+        </div>
 
-<script>
-let tg = window.Telegram.WebApp;
+        <div class="status-card">
+            <div class="status-info">
+                <span class="status-label">Holat:</span>
+                <span class="status-value" id="statusText">Ulanilmoqda...</span>
+            </div>
+            <div class="status-info">
+                <span class="status-label">IP Manzil:</span>
+                <span class="status-value" id="ipAddress">—</span>
+            </div>
+            <div class="led-indicator" id="ledIndicator">💡</div>
+        </div>
 
-// Telegram Mini App ni sozlash
-tg.expand();
-tg.enableClosingConfirmation();
+        <div class="controls">
+            <div class="control-title">LED Rejimlar</div>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                Yuklanmoqda...
+            </div>
 
-// MainButton ni yashirish
-tg.MainButton.hide();
+            <div class="button-grid" id="buttonGrid">
+                <button class="control-btn" onclick="sendCommand('OFF')">
+                    <span class="icon">❌</span>
+                    <span class="label">O'chirish</span>
+                </button>
+                <button class="control-btn" onclick="sendCommand('ON')">
+                    <span class="icon">✅</span>
+                    <span class="label">Yoqish</span>
+                </button>
+                <button class="control-btn" onclick="sendCommand('BLINK_SLOW')">
+                    <span class="icon">🔄</span>
+                    <span class="label">Sekin</span>
+                </button>
+                <button class="control-btn" onclick="sendCommand('BLINK_FAST')">
+                    <span class="icon">⚡</span>
+                    <span class="label">Tez</span>
+                </button>
+                <button class="control-btn full-width" onclick="sendCommand('PULSE')">
+                    <span class="icon">💫</span>
+                    <span class="label">Pulse Effekt</span>
+                </button>
+            </div>
 
-function showLoading() {
-  document.getElementById('loading').classList.add('show');
-}
+            <div class="message" id="message"></div>
+        </div>
+    </div>
 
-function hideLoading() {
-  document.getElementById('loading').classList.remove('show');
-}
+    <script>
+        const BOT_TOKEN = new URLSearchParams(window.location.search).get('token') || '';
+        const ESP_IP = new URLSearchParams(window.location.search).get('ip') || '';
+        const CHAT_ID = '6318105665';
+        
+        let currentMode = 'OFF';
 
-function showNotification(message, isError = false) {
-  if (isError) {
-    tg.showAlert(message);
-  } else {
-    tg.showPopup({
-      title: '✅ Bajarildi',
-      message: message,
-      buttons: [{type: 'ok'}]
-    });
-  }
-}
+        function showMessage(text, duration = 3000) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.classList.add('show');
+            setTimeout(() => {
+                messageEl.classList.remove('show');
+            }, duration);
+        }
 
-async function sendCommand(cmd) {
-  showLoading();
-  
-  try {
-    // Telegram bot orqali ESP32 ga buyruq yuborish
-    // Bu yerda bot token va chat_id kerak
-    
-    // Telegram WebApp data orqali yuborish
-    const commandData = JSON.stringify({
-      command: cmd,
-      timestamp: Date.now()
-    });
-    
-    // Bot ga xabar yuborish
-    tg.sendData(commandData);
-    
-    // Vizual feedback
-    setTimeout(() => {
-      hideLoading();
-      updateStatus(cmd);
-      showNotification('Buyruq yuborildi: ' + cmd);
-    }, 500);
-    
-  } catch (e) {
-    console.error('Xatolik:', e);
-    hideLoading();
-    showNotification('Xatolik yuz berdi!', true);
-  }
-}
+        function updateLedIndicator(mode) {
+            const indicator = document.getElementById('ledIndicator');
+            const statusText = document.getElementById('statusText');
+            
+            indicator.classList.remove('active');
+            
+            switch(mode) {
+                case 'ON':
+                    indicator.classList.add('active');
+                    statusText.textContent = 'Yoniq';
+                    break;
+                case 'OFF':
+                    statusText.textContent = 'O\'chiq';
+                    break;
+                case 'BLINK_SLOW':
+                    indicator.classList.add('active');
+                    statusText.textContent = 'Sekin Miltillaydi';
+                    break;
+                case 'BLINK_FAST':
+                    indicator.classList.add('active');
+                    statusText.textContent = 'Tez Miltillaydi';
+                    break;
+                case 'PULSE':
+                    indicator.classList.add('active');
+                    statusText.textContent = 'Pulse Effekt';
+                    break;
+            }
+            
+            currentMode = mode;
+        }
 
-function updateStatus(cmd) {
-  const ledStatus = document.getElementById('ledStatus');
-  
-  if (cmd === 'rejim1') {
-    ledStatus.textContent = 'Rejim 1 (Tez)';
-  } else if (cmd === 'rejim2') {
-    ledStatus.textContent = 'Rejim 2 (Sekin)';
-  } else if (cmd === 'sos') {
-    ledStatus.textContent = 'SOS Signal';
-  } else if (cmd === 'random') {
-    ledStatus.textContent = 'Random';
-  } else if (cmd === 'off') {
-    ledStatus.textContent = "O'chiq";
-  }
-}
+        async function sendCommand(command) {
+            if (!BOT_TOKEN) {
+                showMessage('❌ Token topilmadi');
+                return;
+            }
 
-// Telegram theme ranglarini qo'llash
-if (tg.colorScheme === 'dark') {
-  document.body.style.background = tg.themeParams.bg_color || '#1a1a1a';
-}
+            const loadingEl = document.getElementById('loading');
+            const buttonGrid = document.getElementById('buttonGrid');
+            
+            loadingEl.classList.add('show');
+            buttonGrid.style.opacity = '0.5';
 
-// Ilova yuklanganda
-window.addEventListener('load', () => {
-  console.log('Telegram Mini App yuklandi');
-  console.log('User ID:', tg.initDataUnsafe?.user?.id);
-  
-  // Ready signal
-  tg.ready();
-});
-</script>
+            try {
+                const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        chat_id: CHAT_ID,
+                        text: command
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.ok) {
+                    updateLedIndicator(command);
+                    showMessage('✅ Buyruq yuborildi');
+                } else {
+                    showMessage('❌ Xatolik yuz berdi');
+                }
+            } catch (error) {
+                console.error('Xatolik:', error);
+                showMessage('❌ Ulanish xatosi');
+            } finally {
+                loadingEl.classList.remove('show');
+                buttonGrid.style.opacity = '1';
+            }
+        }
+
+        // Sahifa yuklanganida
+        window.addEventListener('load', () => {
+            const ipEl = document.getElementById('ipAddress');
+            if (ESP_IP) {
+                ipEl.textContent = ESP_IP;
+            } else {
+                ipEl.textContent = 'Noma\'lum';
+            }
+            
+            if (!BOT_TOKEN) {
+                showMessage('⚠️ Token topilmadi. URL ni tekshiring.', 5000);
+            } else {
+                showMessage('✅ Tayyor', 2000);
+            }
+            
+            updateLedIndicator('OFF');
+        });
+    </script>
 </body>
 </html>
